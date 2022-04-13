@@ -80,8 +80,3 @@
         name: ocserv
         enabled: yes
         state: restarted
-    - name: firewalld_restart
-      service:
-        name: firewalld
-        enabled: yes
-        state: restarted
