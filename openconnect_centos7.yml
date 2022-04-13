@@ -1,0 +1,87 @@
+- hosts: all
+  become: yes
+  tags: openconnect
+
+  pre_tasks:
+  - name: Install epel-release
+    yum:
+      name: epel-release
+      enablerepo: extras
+      state: present
+      
+  tasks:
+  - name: Install  packages
+    yum:
+      name:
+        - certbot
+        - ocserv
+      state: present
+
+  - name: Enable IP forward
+    sysctl:
+      name: net.ipv4.ip_forward
+      value: '1'
+      sysctl_set: yes
+      state: present
+      reload: yes
+
+  - name: ICMP block
+    firewalld:
+      zone: public
+      state: enabled
+      permanent: yes
+      icmp_block: echo-request
+    register: icmp_block
+
+  - name: IP masquerading
+    firewalld:
+      masquerade: 'yes'
+      state: enabled
+      permanent: yes
+      zone: public
+    register: masquerading
+
+  - name: Open required ports
+    firewalld:
+      port: "{{ item }}"
+      permanent: yes
+      state: enabled
+    loop:
+      - "1443/tcp"
+      - "1443/udp"
+      - "80/tcp"
+    register: ports
+
+  - name: Restart firewalld service
+    systemd:
+      name: firewalld
+      state: restarted
+      enabled: yes
+    when: ports.changed or masquerading.changed or icmp_block.changed
+
+  - name: Copy openconnect configuration
+    template:
+      src: "{{ files_dir }}/ocserv.conf"
+      dest: /etc/ocserv/ocserv.conf
+
+  - name: Checking for an existing certificate
+    find:
+      path: /etc/letsencrypt/live/{{ inventory_hostname }}
+    register: cert_check
+
+  - name: Issuing a certificate for a domain {{ inventory_hostname }}
+    shell: /usr/bin/certbot certonly -n --agree-tos --authenticator standalone --post-hook "systemctl restart ocserv" -d {{ inventory_hostname }} -m {{ certbot_email}}
+    when: cert_check.matched == 0
+    notify: ocserv_restart
+
+  handlers:
+    - name: ocserv_restart
+      service:
+        name: ocserv
+        enabled: yes
+        state: restarted
+    - name: firewalld_restart
+      service:
+        name: firewalld
+        enabled: yes
+        state: restarted
