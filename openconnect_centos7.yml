@@ -63,6 +63,7 @@
     template:
       src: "{{ files_dir }}/ocserv.conf"
       dest: /etc/ocserv/ocserv.conf
+     notify: ocserv_restart
 
   - name: Checking for an existing certificate
     find:
@@ -80,3 +81,4 @@
         name: ocserv
         enabled: yes
         state: restarted
+      when: not ansible_check_mode
