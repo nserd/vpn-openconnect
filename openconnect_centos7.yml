@@ -47,8 +47,8 @@
       permanent: yes
       state: enabled
     loop:
-      - "1443/tcp"
-      - "1443/udp"
+      - "{{ openconnect_port | default('443') }}/tcp"
+      - "{{ openconnect_port | default('443') }}/udp"
       - "80/tcp"
     register: ports
 
