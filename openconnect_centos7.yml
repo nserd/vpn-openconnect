@@ -70,7 +70,7 @@
     register: cert_check
 
   - name: Issuing a certificate for a domain {{ inventory_hostname }}
-    shell: /usr/bin/certbot certonly -n --agree-tos --authenticator standalone --post-hook "systemctl restart ocserv" -d {{ inventory_hostname }} -m {{ certbot_email}}
+    shell: /usr/bin/certbot certonly -n --agree-tos --authenticator standalone --post-hook "systemctl restart ocserv" -d {{ inventory_hostname }} -m {{ certbot_email }}
     when: cert_check.matched == 0
     notify: ocserv_restart
 
